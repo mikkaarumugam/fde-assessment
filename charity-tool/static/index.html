@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Charity Growth Lookup</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Charity Growth Lookup</h1>
+    <p class="subtitle">Type a charity name or registration number to see 3-year income &amp; expenditure trends and key people.</p>
+  </header>
+
+  <main>
+    <form id="search-form" class="search">
+      <input
+        id="query"
+        name="query"
+        type="text"
+        placeholder="e.g. 216401 or 'NSPCC'"
+        autocomplete="off"
+        autofocus
+      />
+      <button type="submit">Look up</button>
+    </form>
+
+    <section id="status" class="status" hidden></section>
+    <section id="result" class="result" hidden></section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
