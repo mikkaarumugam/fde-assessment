@@ -134,7 +134,7 @@ INGEST            →  STORE       →  QUERY        →  ENRICH          →  P
                                                      logic)
 ```
 
-The Charity Commission publishes the [full register as a bulk download](https://register-of-charities.charitycommission.gov.uk/en/full-register-download)
+The Charity Commission publishes the [full register as a bulk download](https://register-of-charities.charitycommission.gov.uk/en/register/full-register-download)
 (CSV/JSON, refreshed daily) with linked tables for the charity record, financials,
 area of operation, and classification. Load it into a database and sector /
 geography / income become ordinary filters. Crucially, **the differentiated parts —
