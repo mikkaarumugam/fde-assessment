@@ -108,12 +108,64 @@ All paths below are under `charity-tool/`:
 - **Secrets stay out of git.** The key lives in `.env` (gitignored); `.env.example`
   documents the variable. The app fails fast with a clear message if it's missing.
 
-## Not built (and how I'd extend it)
+## Roadmap — where I'd take this next
 
-The stretch goal of **searching by geography / sector / income band across many
-charities at once** isn't included: the per-charity register API isn't built for
-that kind of filtered bulk query. The right approach is to load the Charity
-Commission's [full register download](https://register-of-charities.charitycommission.gov.uk/en/full-register-download)
-(or the CharityBase / findthatcharity mirrors, which already index those facets)
-into a local table and query that, then reuse this same analysis + UI layer to
-render the multi-charity results.
+The whole arc:
+**standalone lookup → filtered segments → bulk prospecting → auto-sync into the CRM.**
+
+### 1. Multi-charity search by sector, geography, and income band
+
+Deliberately left out of v1, for a concrete reason. The register API **only
+searches by name**, and even that is a literal text match — a search for
+`education` returns 8,000+ charities with "education" *in their name*, not the
+education *sector*. Every faceted endpoint I probed (`searchByClassification`,
+`charitiesByArea`, …) returns 404. The sector (classification) and geography
+(area of operation) data exists, but only **one charity at a time, by number** —
+you can't query across the population. It's a lookup service, not a search engine.
+
+To do it properly you stop asking the API to search and bring the whole dataset
+somewhere you *can* query:
+
+```
+INGEST            →  STORE       →  QUERY        →  ENRICH          →  PRESENT
+(nightly bulk        (SQLite /      (filter by      (reuse the         (reuse the table,
+ register download)   Postgres)      sector/geo/     existing trend +    CSV, and detail
+                                     income band)    hot-prospect        view already built)
+                                                     logic)
+```
+
+The Charity Commission publishes the [full register as a bulk download](https://register-of-charities.charitycommission.gov.uk/en/full-register-download)
+(CSV/JSON, refreshed daily) with linked tables for the charity record, financials,
+area of operation, and classification. Load it into a database and sector /
+geography / income become ordinary filters. Crucially, **the differentiated parts —
+the trend/hot-prospect analysis and the UI/CSV — are already done**; this is mostly
+a new data source behind the same tool.
+
+- **Faster path:** [CharityBase](https://charitybase.uk/) has already ingested the
+  register and exposes filters for cause/sector, location, and income — prototype
+  on it to validate the sales workflow before building a pipeline.
+- **Sequencing:** prototype on CharityBase; own the data (bulk extract → DB) if it
+  becomes core, because owning it lets you **join against mhance's own CRM data**
+  (who's already a customer / been contacted).
+- **Decisions to make:** income-band buckets, sector taxonomy (the Commission's
+  classification codes vs. a curated sales-friendly list), geography granularity
+  (region vs. local authority), and refresh cadence.
+
+### 2. Push hot prospects into Dynamics 365 (the sales team's CRM)
+
+mhance is a Microsoft Dynamics 365 partner — their sales team lives in the CRM all
+day. The insight should reach them *there*, not in a separate tool they have to
+remember to open. So: a charity this tool flags as a **hot prospect** is created
+automatically as a **Lead** in Dynamics, with the income trend attached, refreshed
+overnight.
+
+Dynamics CRM is built on **Dataverse**, which exposes a **Web API** — creating a
+Lead is a standard authenticated request (or no-code via **Power Automate**). The
+plumbing is trivial; the real work is **access and data model**: an admin
+registering the app in Microsoft Entra ID, and mapping to *their* Lead schema and
+duplicate rules. That's an environment/trust problem, not a coding one — which is
+why it isn't faked here without their instance.
+
+Combined with #1, this closes the loop: filter the whole register for growing
+charities in a target segment, and drop them straight into the sales team's
+pipeline.
