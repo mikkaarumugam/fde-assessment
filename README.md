@@ -53,6 +53,27 @@ pytest
 
 ---
 
+## Deploying it for real
+
+Today it runs locally; production just means it runs on an always-on server the
+whole team can log into. Since mhance is a Microsoft shop, the sensible move is to
+deploy it into the stack they already run rather than introduce something foreign:
+
+- **Host on Azure** (App Service / Container Apps) — packaged as a container, at a
+  real URL behind HTTPS, not `localhost`.
+- **Sign-in via Microsoft Entra ID** — the same identity behind Dynamics, so only
+  mhance staff can access it and there are no new passwords.
+- **API key in Azure Key Vault** — out of a file on disk, injected at runtime.
+- **Shared cache** (Redis) instead of the per-process in-memory one, so the whole
+  team benefits from each other's lookups.
+- **CI/CD from GitHub** — tests run and the app deploys automatically on push.
+
+The app itself is essentially deploy-ready — it's a standard containerisable web
+app. The production work is the *wrapping* (hosting, auth, secrets, shared cache),
+not a rewrite: roughly a day or two to a basic live deployment.
+
+---
+
 ## How it works
 
 ```
